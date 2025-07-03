@@ -1,10 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
 
 type user struct {
@@ -18,30 +18,13 @@ func (u user) String() string {
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	// fmt.Fprintf(w, "Hello Root Route") -> same as below
 	w.Write([]byte("Hello Root Route"))
 	fmt.Println("Hello Root Route")
 }
 
 func teachersHandler(w http.ResponseWriter, r *http.Request) {
-	// teachers/{id}
-	// teachers/?key=value&query=value2&sortby=email&sortorder=asc
 	switch r.Method {
 	case http.MethodGet:
-		fmt.Println(r.URL.Path)
-		path := strings.TrimPrefix(r.URL.Path, "/teachers/")
-		userID := strings.TrimSuffix(path, "/")
-
-		fmt.Println("The ID is:", userID)
-
-		fmt.Println("Query:", r.URL.Query())
-		queryParams := r.URL.Query()
-		sortby := queryParams.Get("sortby")
-		key := queryParams.Get("key")
-		order := queryParams.Get("order")
-
-		fmt.Printf("Sort by: %v, Sort order: %v, Key: %v\n", sortby, order, key)
-
 		w.Write([]byte("Hello GET Method on Teachers Route"))
 		fmt.Println("Hello GET Method on Teachers Route")
 		return
@@ -62,8 +45,6 @@ func teachersHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Hello DELETE Method on Teachers Route")
 		return
 	}
-	w.Write([]byte("Hello Teachers Route"))
-	fmt.Println("Hello Teachers Route")
 }
 
 func studentsHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,8 +70,6 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Hello DELETE Method on Students Route")
 		return
 	}
-	w.Write([]byte("Hello Students Route"))
-	fmt.Println("Hello Students Route")
 }
 
 func execsHandler(w http.ResponseWriter, r *http.Request) {
@@ -116,24 +95,38 @@ func execsHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Hello DELETE Method on Execs Route")
 		return
 	}
-	w.Write([]byte("Hello Execs Route"))
-	fmt.Println("Hello Execs Route")
 }
 
 func main() {
+
+	key := "key.pem"
+	cert := "cert.pem"
+
 	port := ":3000"
 
-	http.HandleFunc("/", rootHandler)
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/teachers/", teachersHandler)
+	mux.HandleFunc("/", rootHandler)
 
-	http.HandleFunc("/students/", studentsHandler)
+	mux.HandleFunc("/teachers/", teachersHandler)
 
-	http.HandleFunc("/execs/", execsHandler)
+	mux.HandleFunc("/students/", studentsHandler)
+
+	mux.HandleFunc("/execs/", execsHandler)
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Create a custom server
+	server := &http.Server{
+		Addr: port,
+		Handler: mux,
+		TLSConfig: tlsConfig,
+	}
 
 	fmt.Println("Server is running on port", port)
-
-	err := http.ListenAndServe(port, nil)
+	err := server.ListenAndServeTLS(cert, key)
 
 	if err != nil {
 		log.Fatalln("Error starting the server", err)
