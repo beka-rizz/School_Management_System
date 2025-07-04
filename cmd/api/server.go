@@ -5,17 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"restapi/internal/api/middlewares"
+	mw "restapi/internal/api/middlewares"
 )
 
 type user struct {
 	Name string `json:"name"`
 	Age  string `json:"age"`
 	City string `json:"city"`
-}
-
-func (u user) String() string {
-	return fmt.Sprintf("User (Name: %s, age: %s, city: %s)", u.Name, u.Age, u.City)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +118,8 @@ func main() {
 	// Create a custom server
 	server := &http.Server{
 		Addr: port,
-		Handler: middlewares.SecurityHeaders(mux),
+		Handler: mw.SecurityHeaders(mw.Cors(mux)),
+		// Handler: mw.Cors(mux),
 		TLSConfig: tlsConfig,
 	}
 
